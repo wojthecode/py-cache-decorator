@@ -1,9 +1,10 @@
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any
 
 
-def is_inmutable(*arg) -> bool:
-    return isinstance(arg, (int, float, complex, str, tuple, frozenset, bytes))
+def is_inmutable(value: Any) -> bool:
+    return isinstance(value, (int, float, complex, str,
+                              tuple, frozenset, bytes))
     """Check if argument is inmutable."""
 
 
@@ -11,10 +12,7 @@ def cache(func: Callable) -> Callable:
     store = {}  # Contains cached results
 
     @wraps(func)
-    def inner(*args, **kwargs) -> None:
-
-        if not all(is_inmutable(arg) for arg in args):
-            return func(*args, **kwargs)
+    def inner(*args, **kwargs) -> Any:
 
         key = (args, frozenset(kwargs.items()))
 
@@ -22,6 +20,13 @@ def cache(func: Callable) -> Callable:
             print("Getting from cache")
             return store.get(key)
         else:
+            arg = all(is_inmutable(value)for value in args)
+            kwarg = all(is_inmutable(value)
+                        for value in tuple(sorted(kwargs.items())))
+
+            if not (arg and kwarg):
+                return func(*args, **kwargs)
+
             print("Calculating new result")
             result = func(*args, **kwargs)
             store[key] = result
