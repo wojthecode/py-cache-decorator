@@ -14,19 +14,16 @@ def cache(func: Callable) -> Callable:
     @wraps(func)
     def inner(*args, **kwargs) -> Any:
 
-        key = (args, frozenset(kwargs.items()))
+        key = args + tuple(sorted(kwargs.items()))
+
+        if not all(is_inmutable(value)for value in key):
+            print("Argument is mutable, won't be cached")
+            return None
 
         if key in store:
             print("Getting from cache")
             return store.get(key)
         else:
-            arg = all(is_inmutable(value)for value in args)
-            kwarg = all(is_inmutable(value)
-                        for value in tuple(sorted(kwargs.items())))
-
-            if not (arg and kwarg):
-                return func(*args, **kwargs)
-
             print("Calculating new result")
             result = func(*args, **kwargs)
             store[key] = result
